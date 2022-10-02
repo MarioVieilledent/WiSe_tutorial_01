@@ -14,9 +14,9 @@ import (
 const kmPerDegreeLongitude float64 = 71.5
 const kmPerDegreeLatitude float64 = 111
 
-const fileNameNodes string = "Data/smallOSMNode.csv"
-const fileNameWays string = "Data/smallOSMWayNode.csv"
-const fileNameTags string = "Data/smallOSMWayTag.csv"
+const fileNameNodes string = "Data/exportOSMNode.csv"
+const fileNameWays string = "Data/exportOSMWayNode.csv"
+const fileNameTags string = "Data/exportOSMWayTag.csv"
 
 type OSM_NODE struct {
 	NODE_ID int     `csv:"NODE_ID"`
@@ -45,6 +45,8 @@ func main() {
 
 	minX, maxX, minY, maxY := GetMinMaxPoints() // Get "borders" and display them
 	fmt.Printf("LON borders: [%f, %f]\nLAT borders: [%f, %f]\n", minX, maxX, minY, maxY)
+
+	openWindow()
 
 	input := bufio.NewScanner(os.Stdin)
 	for {

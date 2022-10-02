@@ -1,5 +1,6 @@
 /PDF
 /Screenshots
+*.exe
 
 # Too large files
 /Data/export*.csv
