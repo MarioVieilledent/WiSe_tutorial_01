@@ -14,9 +14,9 @@ import (
 const kmPerDegreeLongitude float64 = 71.5
 const kmPerDegreeLatitude float64 = 111
 
-const fileNameNodes string = "Data/exportOSMNode.csv"
-const fileNameWays string = "Data/exportOSMWayNode.csv"
-const fileNameTags string = "Data/exportOSMWayTag.csv"
+const fileNameNodes string = "Data/smallOSMNode.csv"
+const fileNameWays string = "Data/smallOSMWayNode.csv"
+const fileNameTags string = "Data/smallOSMWayTag.csv"
 
 type OSM_NODE struct {
 	NODE_ID int     `csv:"NODE_ID"`
@@ -40,37 +40,76 @@ var Nodes []OSM_NODE = []OSM_NODE{}
 var WayNodes []OSM_WAY_NODE = []OSM_WAY_NODE{}
 var WayTags []OSM_WAY_TAG = []OSM_WAY_TAG{}
 
+// Structured list of Ways
+var Ways map[int]Way = map[int]Way{}
+
+type Way struct {
+	properties map[string]string
+	list       []OSM_NODE
+}
+
 func main() {
 	GetCSVData() // Retrieve data from CSV files
+
+	BuildWays() // Build a list of ways that is a list of Node
 
 	minX, maxX, minY, maxY := GetMinMaxPoints() // Get "borders" and display them
 	fmt.Printf("LON borders: [%f, %f]\nLAT borders: [%f, %f]\n", minX, maxX, minY, maxY)
 
-	openWindow()
+	openWindow() // Display the map with some graphics
 
-	input := bufio.NewScanner(os.Stdin)
-	for {
-		fmt.Print("Query a node ID (ex. 591147201): ")
-		input.Scan()
-		idQuery, err := strconv.Atoi(input.Text())
-		if err == nil {
-			id := slices.IndexFunc(Nodes, func(n OSM_NODE) bool { return n.NODE_ID == idQuery })
-			if id == -1 {
-				fmt.Println("No node for index", idQuery)
-			} else {
-				fmt.Println(id)
-				fmt.Printf("Node %d: [LON: %f, LAT: %f]\n", idQuery, Nodes[id].LON, Nodes[id].LAT)
-				fmt.Println("Ways related:")
-				for i := range WayNodes {
-					if WayNodes[i].NODE_ID == idQuery {
-						fmt.Printf("Way(%d), Seq_nr(%d)\n", WayNodes[i].WAY_ID, WayNodes[i].SEQ_NR)
-					}
-				}
+	// scannerLoop() //INfinite loop of node id input
+}
+
+func BuildWays() {
+	// 1) Grouping all nodes together to form ways
+	for _, v := range WayNodes {
+		_, ok := Ways[v.WAY_ID]
+		if !ok {
+			key := ""
+			value := ""
+			if id := getIndexWays(v.WAY_ID); id != -1 {
+				key = WayTags[id].KEY
+				value = WayTags[id].VALUE
 			}
-		} else {
-			fmt.Println("Please input a integer as index")
+			Ways[v.WAY_ID] = Way{
+				map[string]string{
+					key: value,
+				},
+				[]OSM_NODE{},
+			}
+		}
+		if id := getIndexNodes(v.NODE_ID); id != -1 {
+			curWay, _ := Ways[v.WAY_ID]
+			key := ""
+			value := ""
+			if id := getIndexWays(v.WAY_ID); id != -1 {
+				key = WayTags[id].KEY
+				value = WayTags[id].VALUE
+			}
+			curWay.list = append(curWay.list, Nodes[id])
+			curWay.properties[key] = value
+			Ways[v.WAY_ID] = curWay
 		}
 	}
+}
+
+func getIndexNodes(id int) int {
+	for p, v := range Nodes {
+		if v.NODE_ID == id {
+			return p
+		}
+	}
+	return -1
+}
+
+func getIndexWays(id int) int {
+	for p, v := range WayTags {
+		if v.WAY_ID == id {
+			return p
+		}
+	}
+	return -1
 }
 
 func GetMinMaxPoints() (minX, maxX, minY, maxY float64) {
@@ -195,5 +234,31 @@ func getTags() {
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func scannerLoop() {
+	input := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("Query a node ID (ex. 591147201): ")
+		input.Scan()
+		idQuery, err := strconv.Atoi(input.Text())
+		if err == nil {
+			id := slices.IndexFunc(Nodes, func(n OSM_NODE) bool { return n.NODE_ID == idQuery })
+			if id == -1 {
+				fmt.Println("No node for index", idQuery)
+			} else {
+				fmt.Println(id)
+				fmt.Printf("Node %d: [LON: %f, LAT: %f]\n", idQuery, Nodes[id].LON, Nodes[id].LAT)
+				fmt.Println("Ways related:")
+				for i := range WayNodes {
+					if WayNodes[i].NODE_ID == idQuery {
+						fmt.Printf("Way(%d), Seq_nr(%d)\n", WayNodes[i].WAY_ID, WayNodes[i].SEQ_NR)
+					}
+				}
+			}
+		} else {
+			fmt.Println("Please input a integer as index")
+		}
 	}
 }

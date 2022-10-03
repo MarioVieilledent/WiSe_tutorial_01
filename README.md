@@ -4,6 +4,8 @@ Mario Vieilledent
 
 29/09/2022
 
+![Preview](preview2.png)
+
 ## What I found hard in this exercise
 
 The over-complexity of the visualization of nodes in spaces. A couple of coordinates is easy to understand and represent in mind, then calculus on theses nodes is just basics calculus with squares and squares roots.
@@ -15,5 +17,7 @@ Why ? Because Go allows to develop quickly and reliably, also it compiles into a
 ## Graphic visualization
 
 A [Ebiten](https://ebitengine.org/) window displays all the points int the map.
+
+Can display node and ways of CSV OSM data.
 
 ![Preview](preview.png)
