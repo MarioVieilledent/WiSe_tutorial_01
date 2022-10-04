@@ -8,8 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-const w int = 1920
-const h int = 1080
+const w int = 1280
+const h int = 720
 
 var node_16_img *ebiten.Image
 var node_4_img *ebiten.Image
@@ -87,18 +87,32 @@ func (s *Sys) Draw(screen *ebiten.Image) {
 			screen.DrawImage(node_1_img, op)
 		}
 	*/
-	for _, way := range Ways {
+	for key, way := range Ways {
 		for id, _ := range way.list {
 			if id < len(way.list)-1 {
 				clr := getColor((way.properties["highway"]))
 				// fmt.Println(s.aX*way[id].LON+s.bX, s.aX*way[id+1].LON+s.bX)
-				ebitenutil.DrawLine(screen,
-					s.aX*way.list[id].LON+s.bX,
-					s.aY*way.list[id].LAT+s.bY,
-					s.aX*way.list[id+1].LON+s.bX,
-					s.aY*way.list[id+1].LAT+s.bY,
-					clr,
-				)
+				if len(QueriedWaysId) == 0 {
+					// Displays a line in the screen
+					ebitenutil.DrawLine(screen,
+						s.aX*way.list[id].LON+s.bX,
+						s.aY*way.list[id].LAT+s.bY,
+						s.aX*way.list[id+1].LON+s.bX,
+						s.aY*way.list[id+1].LAT+s.bY,
+						clr,
+					)
+				} else {
+					if contains(QueriedWaysId, key) {
+						// Displays a line in the screen
+						ebitenutil.DrawLine(screen,
+							s.aX*way.list[id].LON+s.bX,
+							s.aY*way.list[id].LAT+s.bY,
+							s.aX*way.list[id+1].LON+s.bX,
+							s.aY*way.list[id+1].LAT+s.bY,
+							clr,
+						)
+					}
+				}
 			}
 		}
 	}
@@ -149,4 +163,13 @@ func getColor(highway string) color.Color {
 	default:
 		return color.RGBA64{R: 0x88ff, G: 0xffff, B: 0x88ff, A: 0xffff}
 	}
+}
+
+func contains(s []int, id int) bool {
+	for _, v := range s {
+		if v == id {
+			return true
+		}
+	}
+	return false
 }

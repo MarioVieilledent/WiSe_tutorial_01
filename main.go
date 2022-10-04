@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -13,6 +14,9 @@ import (
 
 const kmPerDegreeLongitude float64 = 71.5
 const kmPerDegreeLatitude float64 = 111
+
+var maxDistanceKM float64 = 5.0
+var maxDistanceTest float64 = 0.006
 
 const fileNameNodes string = "Data/smallOSMNode.csv"
 const fileNameWays string = "Data/smallOSMWayNode.csv"
@@ -48,6 +52,9 @@ type Way struct {
 	list       []OSM_NODE
 }
 
+// List of id of way that matches the query
+var QueriedWaysId []int = []int{}
+
 func main() {
 	GetCSVData() // Retrieve data from CSV files
 
@@ -56,9 +63,9 @@ func main() {
 	minX, maxX, minY, maxY := GetMinMaxPoints() // Get "borders" and display them
 	fmt.Printf("LON borders: [%f, %f]\nLAT borders: [%f, %f]\n", minX, maxX, minY, maxY)
 
-	openWindow() // Display the map with some graphics
+	go scannerLoop() //Infinite loop of node id input
 
-	// scannerLoop() //INfinite loop of node id input
+	openWindow() // Display the map with some graphics
 }
 
 func BuildWays() {
@@ -238,6 +245,7 @@ func getTags() {
 }
 
 func scannerLoop() {
+	QueriedWaysId = []int{}
 	input := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Query a node ID (ex. 591147201): ")
@@ -245,20 +253,50 @@ func scannerLoop() {
 		idQuery, err := strconv.Atoi(input.Text())
 		if err == nil {
 			id := slices.IndexFunc(Nodes, func(n OSM_NODE) bool { return n.NODE_ID == idQuery })
+
 			if id == -1 {
 				fmt.Println("No node for index", idQuery)
 			} else {
 				fmt.Println(id)
 				fmt.Printf("Node %d: [LON: %f, LAT: %f]\n", idQuery, Nodes[id].LON, Nodes[id].LAT)
-				fmt.Println("Ways related:")
+				fmt.Println("Ways containing this node:")
 				for i := range WayNodes {
 					if WayNodes[i].NODE_ID == idQuery {
 						fmt.Printf("Way(%d), Seq_nr(%d)\n", WayNodes[i].WAY_ID, WayNodes[i].SEQ_NR)
 					}
 				}
 			}
+
+			fmt.Println("\nList of ways close to this node:")
+			for key, way := range Ways {
+				for id, _ := range way.list {
+					if id < len(way.list)-1 {
+						// Coordinates of center of way
+						wayX := min(way.list[id].LON, way.list[id+1].LON) + math.Abs(way.list[id].LON-way.list[id+1].LON)
+						wayY := min(way.list[id].LAT, way.list[id+1].LAT) + math.Abs(way.list[id].LAT-way.list[id+1].LAT)
+						// fmt.Println(wayX, wayY)
+						// Distance between the query point and the center of way
+						dist := math.Sqrt(
+							math.Pow(math.Abs(wayX-Nodes[id].LON), 2.0) +
+								math.Pow(math.Abs(wayY-Nodes[id].LAT), 2.0))
+						if dist < maxDistanceTest {
+							// fmt.Printf("Way(%d)\n", key)
+							QueriedWaysId = append(QueriedWaysId, key)
+						}
+					}
+				}
+			}
+
 		} else {
-			fmt.Println("Please input a integer as index")
+			fmt.Println("Please input an integer as index")
 		}
+	}
+}
+
+func min(a, b float64) float64 {
+	if a > b {
+		return b
+	} else {
+		return a
 	}
 }
